@@ -1,0 +1,312 @@
+openapi: 3.0.2
+info:
+  title: Watchlist Application API
+  description: 'API for the watchlist app, where users can login and register, add movies/shows to their watchlist and rate them.'
+  version: 0.0.1
+servers:
+  - url: http://localhost:8080/
+    description: Watchlist API Service
+
+components:
+  schemas:
+    User:
+      required:
+      - username
+      - hashed_pass
+      type: object
+      properties:
+        watchlist:
+          type: array
+          items:
+            type: string
+        full_name:
+          type: string
+        hashed_pass:
+          type: string
+        username:
+          type: string
+    Shows:
+      required:
+      - name
+      - type
+      type: object
+      properties:
+        name:
+          type: string
+        genre:
+          type: string
+        rating:
+          type: number
+        rating_number:
+          type: integer
+        type:
+          type: string
+        episodes_num:
+          type: integer
+    userAuthBody:
+      required:
+      - username
+      - password
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    userRegisterBody:
+      required:
+      - username
+      - password
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        full_name:
+          type: string
+    inline_response_400:
+      type: object
+      properties:
+        message:
+          type: string
+    inline_response_200:
+      type: object
+      properties:
+        message:
+          type: string
+    showRating:
+      type: object
+      required:
+      - show_id
+      - rating
+      properties:
+        show_id:
+          type: string
+        rating:
+          type: integer
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_200'
+    "201":
+      description: Object created and added successfully to the DB
+    "400":
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_400'
+    "403":
+      description: Unauthorized functionnality
+    '404':
+      description: Object not found.
+    '500':
+      description: Unexpected internal error.
+  securitySchemes:
+    jwtAuth:       
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
+  parameters:
+    PageLimit:
+      name: limit
+      in: query
+      description: Limits the number of items on a page
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: integer
+    PageOffset:
+      name: offset
+      in: query
+      description: Specifies the page number of the items to be displayed
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: integer
+    ShowID: 
+      name: show_id
+      in: path
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+
+
+paths:
+  /user/login:  # POST: user login and authentication
+    post:
+      description: login user and returns a json web token
+      operationId: login_user
+      tags:
+      - user
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/userAuthBody"
+      responses:
+        '200':
+          $ref: "#/components/responses/200"
+        '403':
+          $ref: "#/components/responses/403"
+        '500':
+          $ref: "#/components/responses/500"
+  /user/register:  # POST: user to register for app
+    post:
+      description: register user to the app
+      operationId: register_user
+      tags:
+      - user
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/userRegisterBody"
+      responses:
+        '200':
+          $ref: "#/components/responses/200"
+        '500':
+          $ref: "#/components/responses/500"
+  /user/watchlist/{show_id}: # POST show to and DELETE show from user watchlist
+    parameters:
+    - $ref: "#/components/parameters/ShowID"
+    patch:
+      description: Adds show to the user's watchlist
+      operationId: add_to_watchlist
+      tags:
+      - user
+      security: # auth header
+        - jwtAuth: []
+      responses:
+        '201':
+          $ref: "#/components/responses/201"
+        '403':
+          $ref: "#/components/responses/403"
+    delete:
+      description: Delete show from user's watchlist
+      operationId: delete_from_watchlist
+      tags:
+      - user
+      security: # auth header
+        - jwtAuth: []
+      responses:
+        '200':
+          $ref: "#/components/responses/200"
+        '403':
+          $ref: "#/components/responses/403"
+  /user/watchlist: #GET user watchlist
+    get:
+      description: Gets the user's watchlist
+      operationId: get_watchlist
+      tags:
+      - user
+      security: # auth header
+        - jwtAuth: []
+      responses:
+        '200':
+          description: Returned user's watchlist successfully
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  type: string
+        '403':
+          $ref: "#/components/responses/403"
+  /user/rate: # POST: user can rate a show
+    post:
+      description: User rates a show, this also affects the show's total rating
+      operationId: rate_show
+      tags:
+      - user
+      security: # auth header
+        - jwtAuth: []
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/showRating"
+      responses:
+        '200':
+          $ref: "#/components/responses/200"
+        '403':
+          $ref: "#/components/responses/403"
+        '500':
+          $ref: "#/components/responses/500"
+  /show/{show_id}: # DELETE show and GET a show
+    parameters:
+    - $ref: "#/components/parameters/ShowID"
+    get:
+      description: Returns a show from the DB if it exists
+      operationId: get_show
+      tags:
+      - shows
+      responses:
+        "200":
+          description: Show found
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Shows'
+        "404":
+          $ref: "#/components/responses/404"
+    delete:
+      description: Deletes a show from the DB
+      operationId: delete_show
+      tags:
+      - shows
+      responses:
+        "200":
+          $ref: "#/components/responses/200"
+        "404":
+          $ref: "#/components/responses/404"
+  /shows: # POST a show to DB and GET all shows with pagination
+    get:
+      description: Gets a show
+      operationId: get_shows_list
+      tags:
+      - shows
+      parameters:
+      - $ref: "#/components/parameters/PageLimit"
+      - $ref: "#/components/parameters/PageOffset"
+      responses:
+        '200':
+          description: Returned shows successfully
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shows'
+        '400':
+          $ref: "#/components/responses/400"
+    post:
+      description: Add show to DB
+      operationId: add_show
+      tags:
+      - shows
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Shows"
+      responses:
+        '201':
+          description: Added show successfully to DB
+          $ref: "#/components/responses/201"
+        '400':
+          $ref: "#/components/responses/400"
+        '500':
+          $ref: "#/components/responses/500"

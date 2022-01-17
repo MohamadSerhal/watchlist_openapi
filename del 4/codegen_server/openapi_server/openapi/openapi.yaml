@@ -1,0 +1,420 @@
+openapi: 3.0.2
+info:
+  description: API for the watchlist app, where users can login and register, add
+    movies/shows to their watchlist and rate them.
+  title: Watchlist Application API
+  version: 0.0.1
+servers:
+- description: Watchlist API Service
+  url: http://localhost:8080/
+paths:
+  /show/{show_id}:
+    delete:
+      description: Deletes a show from the DB
+      operationId: delete_show
+      parameters:
+      - explode: false
+        in: path
+        name: show_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "404":
+          description: Object not found.
+      tags:
+      - shows
+      x-openapi-router-controller: openapi_server.controllers.shows_controller
+    get:
+      description: Returns a show from the DB if it exists
+      operationId: get_show
+      parameters:
+      - explode: false
+        in: path
+        name: show_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shows'
+          description: Show found
+        "404":
+          description: Object not found.
+      tags:
+      - shows
+      x-openapi-router-controller: openapi_server.controllers.shows_controller
+  /shows:
+    get:
+      description: Gets a show
+      operationId: get_shows_list
+      parameters:
+      - description: Limits the number of items on a page
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Specifies the page number of the items to be displayed
+        explode: true
+        in: query
+        name: offset
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Shows'
+                type: array
+          description: Returned shows successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_400'
+          description: Invalid request
+      tags:
+      - shows
+      x-openapi-router-controller: openapi_server.controllers.shows_controller
+    post:
+      description: Add show to DB
+      operationId: add_show
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shows'
+        required: true
+      responses:
+        "201":
+          description: Object created and added successfully to the DB
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_400'
+          description: Invalid request
+        "500":
+          description: Unexpected internal error.
+      tags:
+      - shows
+      x-openapi-router-controller: openapi_server.controllers.shows_controller
+  /user/login:
+    post:
+      description: login user and returns a json web token
+      operationId: login_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userAuthBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "403":
+          description: Unauthorized functionnality
+        "500":
+          description: Unexpected internal error.
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+  /user/rate:
+    post:
+      description: User rates a show, this also affects the show's total rating
+      operationId: rate_show
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/showRating'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "403":
+          description: Unauthorized functionnality
+        "500":
+          description: Unexpected internal error.
+      security:
+      - jwtAuth: []
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+  /user/register:
+    post:
+      description: register user to the app
+      operationId: register_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userRegisterBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "500":
+          description: Unexpected internal error.
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+  /user/watchlist:
+    get:
+      description: Gets the user's watchlist
+      operationId: get_watchlist
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+          description: Returned user's watchlist successfully
+        "403":
+          description: Unauthorized functionnality
+      security:
+      - jwtAuth: []
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+  /user/watchlist/{show_id}:
+    delete:
+      description: Delete show from user's watchlist
+      operationId: delete_from_watchlist
+      parameters:
+      - explode: false
+        in: path
+        name: show_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "403":
+          description: Unauthorized functionnality
+      security:
+      - jwtAuth: []
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+    patch:
+      description: Adds show to the user's watchlist
+      operationId: add_to_watchlist
+      parameters:
+      - explode: false
+        in: path
+        name: show_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "201":
+          description: Object created and added successfully to the DB
+        "403":
+          description: Unauthorized functionnality
+      security:
+      - jwtAuth: []
+      tags:
+      - user
+      x-openapi-router-controller: openapi_server.controllers.user_controller
+components:
+  parameters:
+    PageLimit:
+      description: Limits the number of items on a page
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+      style: form
+    PageOffset:
+      description: Specifies the page number of the items to be displayed
+      explode: true
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+      style: form
+    ShowID:
+      explode: false
+      in: path
+      name: show_id
+      required: true
+      schema:
+        type: string
+      style: simple
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_200'
+      description: OK
+    "201":
+      description: Object created and added successfully to the DB
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_400'
+      description: Invalid request
+    "403":
+      description: Unauthorized functionnality
+    "404":
+      description: Object not found.
+    "500":
+      description: Unexpected internal error.
+  schemas:
+    User:
+      properties:
+        watchlist:
+          items:
+            type: string
+          type: array
+        full_name:
+          type: string
+        hashed_pass:
+          type: string
+        username:
+          type: string
+      required:
+      - hashed_pass
+      - username
+      type: object
+    Shows:
+      example:
+        episodes_num: 1
+        name: name
+        genre: genre
+        rating: 0.8008281904610115
+        rating_number: 6
+        type: type
+      properties:
+        name:
+          title: name
+          type: string
+        genre:
+          title: genre
+          type: string
+        rating:
+          title: rating
+          type: number
+        rating_number:
+          title: rating_number
+          type: integer
+        type:
+          title: type
+          type: string
+        episodes_num:
+          title: episodes_num
+          type: integer
+      required:
+      - name
+      - type
+      title: Shows
+      type: object
+    userAuthBody:
+      properties:
+        username:
+          title: username
+          type: string
+        password:
+          title: password
+          type: string
+      required:
+      - password
+      - username
+      title: userAuthBody
+      type: object
+    userRegisterBody:
+      properties:
+        username:
+          title: username
+          type: string
+        password:
+          title: password
+          type: string
+        full_name:
+          title: full_name
+          type: string
+      required:
+      - password
+      - username
+      title: userRegisterBody
+      type: object
+    inline_response_400:
+      properties:
+        message:
+          title: message
+          type: string
+      title: inline_response_400
+      type: object
+    inline_response_200:
+      example:
+        message: message
+      properties:
+        message:
+          title: message
+          type: string
+      title: inline_response_200
+      type: object
+    showRating:
+      properties:
+        show_id:
+          title: show_id
+          type: string
+        rating:
+          title: rating
+          type: integer
+      required:
+      - rating
+      - show_id
+      title: showRating
+      type: object
+  securitySchemes:
+    jwtAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: openapi_server.controllers.security_controller_.info_from_jwtAuth
